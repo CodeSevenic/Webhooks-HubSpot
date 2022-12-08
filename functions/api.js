@@ -6,13 +6,15 @@ const axios = require('axios').default;
 const serverless = require('serverless-http');
 
 const app = express();
+const router = express.Router();
 const port = 3000;
 
 app.use(express.json());
-app.use(cors({ origin: true }));
+// app.use(cors({ origin: true }));
+router.use(cors());
 
 // Webhook Events listener
-app.get('/', (req, res) =>
+router.get('/', (req, res) =>
   res.send(`
   <html>
     <head><title>Success!</title></head>
@@ -31,7 +33,7 @@ const headers = {
 };
 
 // Accelo Trigger => Notify HubSpot Custom Events
-app.post('/accelo', (request, response) => {
+router.post('/accelo', (request, response) => {
   axios
     .post(
       'https://api.hubspot.com/events/v3/send',
@@ -52,7 +54,7 @@ app.post('/accelo', (request, response) => {
 });
 
 // Github Stars => Notify Discord and HubSpot Custom Events
-app.post('/github', async (event, context) => {
+router.post('/github', async (event, context) => {
   // Notify Discord
   const content = `Repo Name: ${event.body.repository.name} and User: ${event.body.repository.owner.login}`;
   const avatarUrl = event.body.sender.avatar_url;
@@ -104,6 +106,7 @@ const UpdateHubspotContact = async (data, id) => {
   let first_name = data.Value.ResumeData.ContactInformation.CandidateName.GivenName;
   let last_name = data.Value.ResumeData.ContactInformation.CandidateName.FamilyName;
   let phone = data.Value.ResumeData.ContactInformation.Telephones[0].Raw;
+
   try {
     await axios
       .patch(
@@ -136,6 +139,7 @@ const AddHubspotContact = async (data) => {
   let first_name = data.Value.ResumeData.ContactInformation.CandidateName.GivenName;
   let last_name = data.Value.ResumeData.ContactInformation.CandidateName.FamilyName;
   let phone = data.Value.ResumeData.ContactInformation.Telephones[0].Raw;
+
   try {
     await axios.post(
       'https://api.hubapi.com/crm/v3/objects/contacts',
@@ -187,7 +191,7 @@ const HubspotSearch = async (data) => {
 };
 
 // People Solved => Notify Discord and HubSpot Custom Events
-app.post('/peoplesolved', async (event, context) => {
+router.post('/peoplesolved', async (event, context) => {
   const nameAndSurname = event.body.Value.ResumeData.ContactInformation.CandidateName.FormattedName;
   const emailAddress = event.body.Value.ResumeData.ContactInformation.EmailAddresses[0];
   const phoneNumber = event.body.Value.ResumeData.ContactInformation.Telephones[0].Raw;
@@ -222,14 +226,15 @@ app.post('/peoplesolved', async (event, context) => {
   }
 });
 
-app.use((error, req, res, next) => {
+router.use((error, req, res, next) => {
   res.status(500);
   res.send({ error: error });
   console.error(error.stack);
   next(error);
 });
 
-app.listen(port, () => console.log(`Example app listening at http://localhost:${port}`));
+// app.listen(port, () => console.log(`Example app listening at http://localhost:${port}`));
 
+app.use('/', router);
 // To be used on netlify serverless functions
-// module.exports.handler = serverless(app);
+module.exports.handler = serverless(app);

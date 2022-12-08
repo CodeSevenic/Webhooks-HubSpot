@@ -136,14 +136,14 @@ const AddHubspotContact = async (data) => {
 
   const res = await axios.post(
     'https://api.hubapi.com/crm/v3/objects/contacts',
-    JSON.stringify({
+    {
       properties: {
         email: email,
         firstname: first_name,
         lastname: last_name,
         phone: phone,
       },
-    }),
+    },
     {
       headers: {
         authorization: `Bearer ${process.env.ACCESS_TOKEN}`,

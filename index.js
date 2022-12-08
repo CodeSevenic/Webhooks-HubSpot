@@ -99,6 +99,81 @@ app.post('/github', async (event, context) => {
   }
 });
 
+const UpdateHubspotContact = async (data, id) => {
+  let email = data.Value.ResumeData.ContactInformation.EmailAddresses[0];
+  let first_name = data.Value.ResumeData.ContactInformation.CandidateName.GivenName;
+  let last_name = data.Value.ResumeData.ContactInformation.CandidateName.FamilyName;
+  let phone = data.Value.ResumeData.ContactInformation.Telephones[0].Raw;
+
+  await axios
+    .patch(
+      `https://api.hubapi.com/crm/v3/objects/contacts/${id}`,
+      {
+        properties: {
+          email: email,
+          firstname: first_name,
+          lastname: last_name,
+          phone: phone,
+        },
+      },
+      {
+        headers: {
+          authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+          'content-type': 'application/json',
+        },
+      }
+    )
+    .then((res) => {
+      console.log(res.data);
+    });
+};
+
+const AddHubspotContact = async (data) => {
+  let email = data.Value.ResumeData.ContactInformation.EmailAddresses[0];
+  let first_name = data.Value.ResumeData.ContactInformation.CandidateName.GivenName;
+  let last_name = data.Value.ResumeData.ContactInformation.CandidateName.FamilyName;
+  let phone = data.Value.ResumeData.ContactInformation.Telephones[0].Raw;
+
+  const res = await axios.post(
+    'https://api.hubapi.com/crm/v3/objects/contacts',
+    JSON.stringify({
+      properties: {
+        email: email,
+        firstname: first_name,
+        lastname: last_name,
+        phone: phone,
+      },
+    }),
+    {
+      headers: {
+        authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+        'content-type': 'application/json',
+      },
+    }
+  );
+};
+
+const HubspotSearch = async (data) => {
+  let email = data.Value.ResumeData.ContactInformation.EmailAddresses[0];
+
+  const res = await axios
+    .get('https://api.hubapi.com/contacts/v1/search/query?q=' + email, {
+      headers: {
+        authorization: `Bearer ${process.env.ACCESS_TOKEN}`,
+        'content-type': 'application/json',
+      },
+    })
+    .then((res) => {
+      const contactId = res.data.contacts[0].vid;
+
+      if (res.data.total == 0) {
+        AddHubspotContact(data);
+      } else {
+        UpdateHubspotContact(data, contactId);
+      }
+    });
+};
+
 // People Solved => Notify Discord and HubSpot Custom Events
 app.post('/peoplesolved', async (event, context) => {
   const nameAndSurname = event.body.Value.ResumeData.ContactInformation.CandidateName.FormattedName;
@@ -122,6 +197,11 @@ app.post('/peoplesolved', async (event, context) => {
         },
         { headers: headers }
       );
+      console.log(res.status);
+      // Search and Update Contact
+      HubspotSearch(event.body);
+      if (res.status === 204) {
+      }
     } else {
       console.log('Details are missing! 😒');
     }
@@ -140,4 +220,4 @@ app.use((error, req, res, next) => {
 app.listen(port, () => console.log(`Example app listening at http://localhost:${port}`));
 
 // To be used on netlify serverless functions
-module.exports.handler = serverless(app);
+// module.exports.handler = serverless(app);

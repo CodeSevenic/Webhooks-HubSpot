@@ -105,21 +105,19 @@ app.post('/peoplesolved', async (event, context) => {
   const emailAddress = event.body.Value.ResumeData.ContactInformation.EmailAddresses[0];
   const phoneNumber = event.body.Value.ResumeData.ContactInformation.Telephones[0].Raw;
 
-  // // Notify HubSpot Custom Event
+  // Notify HubSpot Custom Event
   try {
     if (nameAndSurname || emailAddress || phoneNumber) {
       const res = await axios.post(
         'https://api.hubspot.com/events/v3/send',
         {
-          email: 'sibusiso@mo.agency',
-          eventName: 'pe2896934_github_stars',
+          email: `${emailAddress}`,
+          eventName: 'pe2896934_submitted_cv_notification',
           properties: {
-            user: `${event.body.repository.owner.login}`,
-            avatar: `${event.body.sender.avatar_url}`,
-            repository: `${event.body.repository.name}`,
-            hs_city: 'Emalahleni',
-            hs_country: 'South Africa',
-            hs_region: 'Nkangala',
+            message: `${nameAndSurname} Has submitted their resume 😊`,
+            formatted_name: `${nameAndSurname}`,
+            email: `${emailAddress}`,
+            phone_number: `${phoneNumber}`,
           },
         },
         { headers: headers }
